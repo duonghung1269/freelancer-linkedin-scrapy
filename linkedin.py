@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from scrapy.spiders.init import InitSpider
 from scrapy.http import Request, FormRequest
 from scrapy.utils.response import open_in_browser
@@ -22,6 +23,7 @@ class MySpider(InitSpider):
     #allowed_domains = ['linkedin.com']
     login_page = 'https://www.linkedin.com/uas/login'
     start_urls = ['https://www.linkedin.com/vsearch/p?f_CC=3530383&trk=rr_connectedness']
+    ids = []
     #extractor = SgmlLinkExtractor()
 
     #rules = (
@@ -34,12 +36,15 @@ class MySpider(InitSpider):
 
     def init_request(self):
         """This function is called before crawling starts."""
+        f = open("linkedinIds.csv", "r")
+        self.ids = [url.strip() for url in f.readlines()]
+        f.close()
         return Request(url=self.login_page, callback=self.login)
 
     def login(self, response):
         """Generate a login request."""
         return FormRequest.from_response(response,
-                    formdata={'session_key': 'xxx@gmail.com', 'session_password': 'yyy'},
+                    formdata={'session_key': 'xxx@gmail.com', 'session_password': 'xxx'},
                     callback=self.check_login_response)
 
     def check_login_response(self, response):
@@ -54,11 +59,13 @@ class MySpider(InitSpider):
             # f = open("linkedinIds.csv", "r")
             # ids = [url.strip() for url in f.readlines()]
             # f.close()
-            # for id in ids:
-            #     url = 'https://www.linkedin.com/vsearch/p?f_CC=%s&trk=rr_connectedness' % id
-            #     print "url=======%s" % url
-            #     yield scrapy.Request(url, self.parse)
-            yield Request('https://www.linkedin.com/vsearch/p?f_CC=3530383&trk=rr_connectedness', self.parsess)
+            for id in self.ids:
+                url = 'https://www.linkedin.com/vsearch/p?f_CC=%s&trk=rr_connectedness' % id
+                print "url=======%s" % url
+                yield scrapy.Request(url, self.parsess)
+
+            # yield Request('https://www.linkedin.com/vsearch/p?f_CC=208401&trk=rr_connectedness', self.parsess)
+            # yield Request('https://www.linkedin.com/vsearch/p?f_CC=3530383&trk=rr_connectedness', self.parsess)
             self.initialized()
 
         else:
@@ -70,14 +77,24 @@ class MySpider(InitSpider):
         print response.url
         # hxs = HtmlXPathSelector(response)
         # print hxs.xpath('//div[@id="results-container"]').extract()
+        with open('log_fpt.html', 'a') as f:
+		    f.write(response.body)
+
 
         # self.driver.get(response.url)
         # self.driver.implicitly_wait(20)
         # Scrape data from page
         items = []
-        print response.xpath('//title/text()').extract()[0]
-        #print len(response.xpath('//code[@id="voltron_srp_main-content]//comment()/text()"]').extract())
+
+        # worked, but include u' :'(
+        commented_json2 =  response.xpath('//code[@id="voltron_srp_main-content"]')[0].xpath('comment()').extract()[0]
+        # print(repr(commented_json2))
+        # removedTagsJson2 = self.remove_tags(commented_json2)
+
+        # print "after removed tags=============== ", removedTagsJson2
         soup = BeautifulSoup(response.body, "lxml")
+        # commented_json = soup.find('code', id="voltron_srp_main-content")
+        print soup.code
         code = soup.find('code', id="voltron_srp_main-content").contents[0].replace(r'\u002d', '-')
         json_code = json.loads(code)
 
@@ -94,11 +111,17 @@ class MySpider(InitSpider):
             firstName = person["firstName"] if 'firstName' in person else ""
             lastName = person["lastName"] if 'lastName' in person else ""
             fullName = person["fmt_name"] if 'fmt_name' in person else ""
-            company = person['snippets'][0]["heading"]
+            company = BeautifulSoup(person['snippets'][0]["heading"]).text
             item = LikedinItem(companyname=company, fullname=fullName, firstname=firstName, lastname=lastName, profileurl=profileUrl)
             profiles.append(item)
             # company_list.append("%s\t%s\t%s\t%s\n" % (name, fmt_industry, fmt_size, fmt_location))
-        return profiles
+
+        # for profile in profiles:
+        #     with open('some.csv', 'wb') as f:
+        #         f.write(profile.companyname & "," & profile.firstName & "," & profile.lastName & "," & profile.profileUrl)
+            # writer = csv.writer(f)
+            # writer.writerows(someiterable)
+        # return profiles
 
         #print response.xpath('//code/text()').extract()[0]
         #with open('log.txt', 'a') as f:
@@ -133,3 +156,11 @@ class MySpider(InitSpider):
             print employee['person']['link_nprofile_view_3']
             profiles.append(employee['person']['link_nprofile_view_3'])
         return profiles , len(profiles)
+
+    def remove_tags(p, p2):
+        print "remove_tags p++++++++++++++++", repr(p), "remove_tags p2###################", repr(p2)
+        # p=str(p)
+
+        # u'<!--{"content":{....."status":"ok"}-->'
+        p3 = repr(p2)
+        return p3[6: -4]
