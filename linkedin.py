@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# _*_ coding:utf-8 _*_
 from scrapy.spiders.init import InitSpider
 from scrapy.http import Request, FormRequest
 from scrapy.utils.response import open_in_browser
@@ -24,6 +24,7 @@ class MySpider(InitSpider):
     login_page = 'https://www.linkedin.com/uas/login'
     start_urls = ['https://www.linkedin.com/vsearch/p?f_CC=3530383&trk=rr_connectedness']
     ids = []
+    base_url = 'https://www.linkedin.com'
     #extractor = SgmlLinkExtractor()
 
     #rules = (
@@ -76,7 +77,7 @@ class MySpider(InitSpider):
         self.log("====parse_item")
         print response.url
         # hxs = HtmlXPathSelector(response)
-        # print hxs.xpath('//div[@id="results-container"]').extract()
+        # print hxs.xpath('//div[@id="resulfts-container"]').extract()
         with open('log_fpt.html', 'a') as f:
 		    f.write(response.body)
 
@@ -87,24 +88,31 @@ class MySpider(InitSpider):
         items = []
 
         # worked, but include u' :'(
-        commented_json2 =  response.xpath('//code[@id="voltron_srp_main-content"]')[0].xpath('comment()').extract()[0]
+        # commented_json2 =  response.xpath('//code[@id="voltron_srp_main-content"]')[0].xpath('comment()').extract()[0]
         # print(repr(commented_json2))
         # removedTagsJson2 = self.remove_tags(commented_json2)
 
         # print "after removed tags=============== ", removedTagsJson2
-        soup = BeautifulSoup(response.body, "lxml")
+        # soup = BeautifulSoup(response.body, "lxml")
+        # soup = BeautifulSoup(response.body, "html.parser")
+        soup = BeautifulSoup(response.body, "html5lib")
         # commented_json = soup.find('code', id="voltron_srp_main-content")
-        print soup.code
+        # print soup.prettify()
+        # with open('logsoup.html', 'a') as f:
+		#     f.write(soup.prettify().encode("utf-8"))
+
         code = soup.find('code', id="voltron_srp_main-content").contents[0].replace(r'\u002d', '-')
         json_code = json.loads(code)
 
+        # json_code['content']['page']['voltron_unified_search_json']['search']['baseData']
+
         employees = json_code['content']['page']['voltron_unified_search_json']['search']['results']
-        # print employees
-        # return employees
-        # company_list = []
-        # company_list = []
+
         profiles=[]
         for employee in employees:
+            if 'person' not in employee:
+                continue
+
             person = employee['person']
             profileUrl = person["link_nprofile_view_3"] if 'link_nprofile_view_3' in person else person['link_nprofile_view_headless']
             profileUrl = profileUrl[0:profileUrl.index("&")]
@@ -164,3 +172,12 @@ class MySpider(InitSpider):
         # u'<!--{"content":{....."status":"ok"}-->'
         p3 = repr(p2)
         return p3[6: -4]
+
+    def __to_absolute_url(self, base_url, link):
+        '''
+        Convert relative URL to absolute url
+        '''
+
+        import urlparse
+        link = urlparse.urljoin(base_url, link)
+        return link
