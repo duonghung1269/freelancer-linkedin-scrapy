@@ -49,7 +49,7 @@ class MySpider(InitSpider):
     def login(self, response):
         """Generate a login request."""
         return FormRequest.from_response(response,
-                    formdata={'session_key': 'xxx@gmail.com', 'session_password': 'yyy'},
+                    formdata={'session_key': 'dangduonghung@gmail.com', 'session_password': 'matkhaucuatui123'},
                     callback=self.check_login_response)
 
     def check_login_response(self, response):
@@ -83,8 +83,8 @@ class MySpider(InitSpider):
         print "+++COMPANY_ID***", response.meta['company_id']
         # hxs = HtmlXPathSelector(response)
         # print hxs.xpath('//div[@id="resulfts-container"]').extract()
-        # with open('log_4999332.html', 'a') as f:
-		#     f.write(response.body)
+        with open('log_111.html', 'a') as f:
+		    f.write(response.body)
 
 
         # self.driver.get(response.url)
@@ -105,6 +105,10 @@ class MySpider(InitSpider):
         # print soup.prettify()
         # with open('logsoup.html', 'a') as f:
 		#     f.write(soup.prettify().encode("utf-8"))
+
+        if soup.find('code', id="voltron_srp_main-content") is None:
+            print "========++ no contents for request url"
+            return
 
         code = soup.find('code', id="voltron_srp_main-content").contents[0].replace(r'\u002d', '-')
         json_code = json.loads(code)
