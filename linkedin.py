@@ -49,7 +49,7 @@ class MySpider(InitSpider):
     def login(self, response):
         """Generate a login request."""
         return FormRequest.from_response(response,
-                    formdata={'session_key': 'dangduonghung@gmail.com', 'session_password': 'matkhaucuatui123'},
+                    formdata={'session_key': 'xxx@gmail.com', 'session_password': 'xxx'},
                     callback=self.check_login_response)
 
     def check_login_response(self, response):
